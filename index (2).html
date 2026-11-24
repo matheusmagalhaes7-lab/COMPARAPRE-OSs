@@ -1,0 +1,1996 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compara Local — Encontre e Compare Prestadores Reais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --surface-alt: #f8faff;
+      --border: #e2e8f0;
+      --border-focus: #6d4aff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #6d4aff;
+      --primary-hover: #5835eb;
+      --primary-soft: #f0edff;
+      --success: #10b981;
+      --success-bg: #ecfdf5;
+      --warning: #f59e0b;
+      --warning-bg: #fffbeb;
+      --danger: #ef4444;
+      --danger-bg: #fef2f2;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.07), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 20px 40px -10px rgba(15, 23, 42, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOPBAR */
+    .topbar {
+      height: 72px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5%;
+      gap: 24px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .brand {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .brand span {
+      color: var(--primary);
+    }
+
+    .topbar nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .nav-btn {
+      border: 0;
+      background: transparent;
+      padding: 9px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+
+    .nav-btn:hover {
+      background: var(--surface-alt);
+      color: var(--text);
+    }
+
+    .nav-btn.active {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .badge-count {
+      background: var(--primary);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 99px;
+      line-height: 1.2;
+    }
+
+    #authArea {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-auth {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      padding: 9px 15px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-family: inherit;
+      max-width: 210px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-auth:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .btn-logout {
+      border: 0;
+      background: transparent;
+      color: var(--text-muted);
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-family: inherit;
+    }
+
+    .btn-logout:hover {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    /* EMAIL VERIFICATION BANNER */
+    .verify-banner {
+      background: var(--warning-bg);
+      border-bottom: 1px solid #fde68a;
+      color: #92400e;
+      padding: 12px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .verify-banner.hidden {
+      display: none;
+    }
+
+    .verify-banner button {
+      background: #d97706;
+      color: #fff;
+      border: 0;
+      border-radius: var(--radius-sm);
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .verify-banner button:hover {
+      background: #b45309;
+    }
+
+    /* MAIN & VIEWS */
+    main {
+      flex: 1;
+      width: 100%;
+    }
+
+    .view {
+      display: none;
+      animation: fadeIn 0.22s ease;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* HERO */
+    .hero {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 56px 5% 40px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .hero h1 {
+      font-size: 46px;
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -1.2px;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .hero p.lead {
+      color: var(--text-muted);
+      font-size: 16px;
+      line-height: 1.65;
+      max-width: 480px;
+    }
+
+    /* CARDS & CONTAINERS */
+    .search-card, .auth-card, .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md);
+      padding: 26px;
+    }
+
+    .search-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* INPUTS & BUTTONS */
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: #94a3b8;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(109, 74, 255, 0.14);
+    }
+
+    .primary {
+      background: var(--primary);
+      color: #fff;
+      border: 0;
+      border-radius: var(--radius-md);
+      padding: 13px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.18s ease, transform 0.1s ease, box-shadow 0.18s ease;
+      box-shadow: 0 4px 12px rgba(109, 74, 255, 0.25);
+    }
+
+    .primary:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 6px 16px rgba(109, 74, 255, 0.32);
+    }
+
+    .primary:active {
+      transform: translateY(1px);
+    }
+
+    .secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .secondary:hover {
+      background: var(--surface-alt);
+      border-color: #cbd5e1;
+    }
+
+    .secondary.in-compare {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* TOOLBAR */
+    .toolbar {
+      max-width: 1200px;
+      margin: 0 auto 28px;
+      padding: 0 5%;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1.3fr;
+      gap: 12px;
+    }
+
+    /* RESULTS GRID */
+    .grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 5% 64px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: #cbd5e1;
+    }
+
+    .cover {
+      height: 175px;
+      background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 50%, #f1f5f9 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover .cover img {
+      transform: scale(1.03);
+    }
+
+    .card-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .card-location {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .card h3 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 14px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .rating-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .price {
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .chip {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 99px;
+      padding: 5px 10px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .actions button {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    /* COMPARE */
+    .section-head {
+      max-width: 1200px;
+      margin: 44px auto 24px;
+      padding: 0 5%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .section-head h2 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+    }
+
+    .compare-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 5% 64px;
+      overflow-x: auto;
+    }
+
+    .compare-table {
+      min-width: 720px;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .compare-table th, .compare-table td {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    .compare-table th:last-child, .compare-table td:last-child {
+      border-right: 0;
+    }
+
+    .compare-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .compare-table th {
+      background: var(--surface-alt);
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .compare-table td:first-child {
+      font-weight: 700;
+      color: var(--text-muted);
+      background: #fafbfe;
+      width: 180px;
+    }
+
+    /* AUTH */
+    .auth-card {
+      max-width: 440px;
+      margin: 64px auto;
+      padding: 32px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      gap: 8px;
+    }
+
+    .tab {
+      flex: 1;
+      border: 0;
+      background: none;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.18s ease;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .form label {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .form textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .verify-box {
+      background: var(--primary-soft);
+      border: 1px solid #ddd6fe;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      display: grid;
+      gap: 12px;
+    }
+
+    .verify-box h3 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .verify-box p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* DASHBOARD */
+    .dashboard {
+      max-width: 1200px;
+      margin: 44px auto;
+      padding: 0 5% 64px;
+    }
+
+    .dashboard h1 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+      margin-bottom: 24px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat span {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 28px;
+      font-weight: 900;
+      margin-top: 6px;
+      color: var(--text);
+      text-transform: capitalize;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .panel h2 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .link-parser-box {
+      background: var(--surface-alt);
+      border: 1px dashed #cbd5e1;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .link-parser-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* MODAL */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 60;
+      animation: fadeIn 0.18s ease;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-box {
+      width: min(660px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: var(--shadow-lg);
+      padding: 30px;
+    }
+
+    .close {
+      position: absolute;
+      right: 18px;
+      top: 14px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 0;
+      background: var(--surface-alt);
+      color: var(--text-muted);
+      font-size: 22px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .close:hover {
+      background: #e2e8f0;
+      color: var(--text);
+    }
+
+    .modal h2 {
+      font-size: 24px;
+      font-weight: 900;
+      margin-bottom: 8px;
+      padding-right: 36px;
+    }
+
+    .modal h3 {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 22px 0 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .modal-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      background: var(--surface-alt);
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      margin: 14px 0;
+      font-size: 14px;
+    }
+
+    .ext-maps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .ext-map-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 13px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      transition: all 0.18s ease;
+    }
+
+    .ext-map-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    /* MAP SECTION */
+    #mapSection {
+      max-width: 1200px;
+      margin: 44px auto;
+      padding: 0 5% 64px;
+    }
+
+    .map-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .map-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .map-layout {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .map-sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      padding: 16px;
+      max-height: 540px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .map-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 13px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      background: var(--surface);
+    }
+
+    .map-item:hover, .map-item.selected {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .map-item h4 {
+      font-size: 15px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+
+    .map-item p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .map-item-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .map-item-links a, .map-item-links button {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .map-item-links button {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    #map {
+      height: 540px;
+      width: 100%;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      z-index: 1;
+    }
+
+    /* MISC & HELPERS */
+    .empty {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      border: 1px dashed #cbd5e1;
+      border-radius: var(--radius-lg);
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .review {
+      border-top: 1px solid var(--border);
+      padding: 14px 0;
+    }
+
+    .review:first-of-type {
+      border-top: 0;
+      padding-top: 4px;
+    }
+
+    .status {
+      display: inline-block;
+      border-radius: 99px;
+      padding: 4px 10px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin: 6px 0;
+    }
+
+    .badge-verified {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--success-bg);
+      color: var(--success);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 99px;
+    }
+
+    .badge-unverified {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--warning-bg);
+      color: #b45309;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 99px;
+    }
+
+    #toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      background: #0f172a;
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+      max-width: 360px;
+    }
+
+    .toast-show {
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 920px) {
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        padding-top: 40px;
+      }
+      .hero h1 {
+        font-size: 38px;
+      }
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .toolbar {
+        grid-template-columns: 1fr 1fr;
+      }
+      .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .map-layout {
+        grid-template-columns: 1fr;
+      }
+      .map-sidebar {
+        max-height: 260px;
+      }
+      #map {
+        height: 420px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar {
+        height: auto;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        gap: 10px;
+      }
+      .topbar nav {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        border-top: 1px solid var(--border);
+        padding-top: 8px;
+        overflow-x: auto;
+      }
+      .nav-btn {
+        padding: 8px 10px;
+        font-size: 13px;
+        flex: 1;
+        justify-content: center;
+      }
+      .search-row, .modal-meta, .link-parser-row {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      .toolbar, .hero, .section-head, .compare-wrap, .dashboard, #mapSection {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+      .hero h1 {
+        font-size: 30px;
+      }
+      .auth-card {
+        margin: 32px 16px;
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="#" onclick="event.preventDefault(); showView('search')">Compara <span>Local</span></a>
+  <nav>
+    <button class="nav-btn active" data-view="search">Pesquisar</button>
+    <button class="nav-btn" data-view="compare">Comparar <span id="compareCount" class="badge-count">0</span></button>
+    <button class="nav-btn" data-view="mapSection">Mapa</button>
+    <button class="nav-btn" data-view="dashboard">Painel</button>
+  </nav>
+  <div id="authArea"></div>
+</header>
+
+<div id="verifyBanner" class="verify-banner hidden">
+  <span>⚠️ Seu e-mail (<strong id="verifyBannerEmail"></strong>) ainda não foi confirmado. Verifique sua caixa de entrada ou spam para liberar todos os recursos.</span>
+  <button type="button" onclick="resendVerification()">Reenviar e-mail de confirmação</button>
+</div>
+
+<main>
+  <section id="search" class="view active">
+    <div class="hero">
+      <div>
+        <p class="eyebrow">SERVIÇOS LOCAIS</p>
+        <h1>Encontre e compare<br>prestadores reais.</h1>
+        <p class="lead">Pesquise empresas cadastradas, compare preços e solicite orçamentos diretamente sem intermediários.</p>
+      </div>
+      <div class="search-card">
+        <input id="q" placeholder="Ex.: Eletricista, encanador, limpeza...">
+        <div class="search-row">
+          <input id="city" placeholder="Cidade">
+          <input id="neighborhood" placeholder="Bairro">
+        </div>
+        <button id="searchBtn" class="primary">Pesquisar prestadores</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <select id="category"><option value="">Todas as categorias</option></select>
+      <input id="minPrice" type="number" min="0" placeholder="Preço mínimo (R$)">
+      <input id="maxPrice" type="number" min="0" placeholder="Preço máximo (R$)">
+      <select id="sort">
+        <option value="rating">Melhor avaliação</option>
+        <option value="price_asc">Menor preço</option>
+        <option value="price_desc">Maior preço</option>
+      </select>
+    </div>
+
+    <div id="results" class="grid"></div>
+  </section>
+
+  <section id="compare" class="view">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">COMPARAÇÃO</p>
+        <h2>Até 4 prestadores</h2>
+      </div>
+    </div>
+    <div id="compareTable"></div>
+  </section>
+
+  <section id="dashboard" class="view">
+    <div id="dashboardContent"></div>
+  </section>
+
+  <section id="auth" class="view">
+    <div class="auth-card">
+      <div class="tabs">
+        <button class="tab active" data-auth="login">Entrar</button>
+        <button class="tab" data-auth="signup">Criar conta</button>
+      </div>
+      <div id="authForm"></div>
+    </div>
+  </section>
+
+  <section id="mapSection" class="view">
+    <div class="map-header">
+      <div>
+        <p class="eyebrow">LOCALIZAÇÃO & ROTAS</p>
+        <h2 style="font-size: 32px; font-weight: 900; letter-spacing: -0.6px;">Mapa de Prestadores</h2>
+      </div>
+      <div class="map-controls">
+        <button type="button" class="secondary" onclick="locateUser()">📍 Perto de mim</button>
+        <select id="mapStyleSelect" style="width:auto;" onchange="changeMapTile(this.value)">
+          <option value="clean">Mapa Limpo (Carto)</option>
+          <option value="osm">OpenStreetMap</option>
+          <option value="sat">Satélite (Esri)</option>
+        </select>
+      </div>
+    </div>
+    <div class="map-layout">
+      <div id="mapSidebar" class="map-sidebar">
+        <p class="muted" style="font-size:13px;">Carregando prestadores no mapa...</p>
+      </div>
+      <div id="map"></div>
+    </div>
+  </section>
+</main>
+
+<div id="modal" class="modal hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal-box">
+    <button class="close" id="closeModal" aria-label="Fechar">&times;</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  /* Compara Local - frontend integrado com Supabase */
+  const SUPABASE_URL = "https://qsdbttivltgnrqfzbkas.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_kP9hzrhjrcHotgjoZWD2vw_YrrwoZFH";
+
+  let sb = null;
+  let user = null;
+  let compare = JSON.parse(localStorage.getItem("compare_local") || "[]");
+  let lastResults = [];
+  let categoriesList = [];
+  let leafletMap = null;
+  let currentTileLayer = null;
+  let mapMarkers = {};
+  let userMarker = null;
+  let pendingVerifyEmail = "";
+
+  const TILE_LAYERS = {
+    clean: {
+      url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      attr: "&copy; OpenStreetMap &copy; CARTO"
+    },
+    osm: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attr: "&copy; OpenStreetMap contributors"
+    },
+    sat: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attr: "&copy; Esri"
+    }
+  };
+
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  }[c]));
+
+  function toast(m) {
+    const t = $("#toast");
+    t.textContent = m;
+    t.classList.add("toast-show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("toast-show"), 3800);
+  }
+
+  function showView(id) {
+    $$(".view").forEach(x => x.classList.remove("active"));
+    $("#" + id)?.classList.add("active");
+
+    $$(".nav-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.view === id);
+    });
+
+    if (id === "compare") renderCompare();
+    if (id === "dashboard") renderDashboard();
+    if (id === "mapSection") initMap();
+  }
+
+  async function init() {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      $("#authArea").innerHTML = `<button class="btn-auth" onclick="showView('auth')">Entrar / Criar conta</button>`;
+      loadCategories();
+      renderResults([]);
+      return;
+    }
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const searchParams = new URLSearchParams(window.location.search);
+    if (hashParams.get("type") === "signup" || searchParams.get("type") === "signup") {
+      toast("E-mail confirmado com sucesso! Bem-vindo ao Compara Local.");
+      history.replaceState(null, "", window.location.pathname);
+    } else if (hashParams.get("error_description") || searchParams.get("error_description")) {
+      const errDesc = hashParams.get("error_description") || searchParams.get("error_description");
+      toast("Aviso na verificação: " + errDesc);
+      history.replaceState(null, "", window.location.pathname);
+    }
+
+    const { data } = await sb.auth.getSession();
+    user = data.session?.user || null;
+    updateAuth();
+
+    sb.auth.onAuthStateChange((event, s) => {
+      user = s?.user || null;
+      updateAuth();
+      if (event === "SIGNED_IN" && user?.email_confirmed_at) {
+        pendingVerifyEmail = "";
+      }
+    });
+
+    await loadCategories();
+    await search();
+  }
+
+  function updateAuth() {
+    const a = $("#authArea");
+    const banner = $("#verifyBanner");
+
+    a.innerHTML = user
+      ? `<button class="btn-auth" onclick="showView('dashboard')" title="${esc(user.email)}">${esc(user.email)}</button><button class="btn-logout" onclick="logout()">Sair</button>`
+      : `<button class="btn-auth" onclick="showView('auth')">Entrar / Criar conta</button>`;
+
+    if (user && !user.email_confirmed_at) {
+      pendingVerifyEmail = user.email;
+      $("#verifyBannerEmail").textContent = user.email;
+      banner.classList.remove("hidden");
+    } else {
+      banner.classList.add("hidden");
+    }
+  }
+
+  async function loadCategories() {
+    if (!sb) return;
+    const { data, error } = await sb.from("categories").select("id,name").eq("active", true).order("name");
+    if (error) return;
+    categoriesList = data || [];
+    $("#category").innerHTML = '<option value="">Todas as categorias</option>' +
+      categoriesList.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  }
+
+  async function search() {
+    if (!sb) {
+      renderResults([]);
+      return;
+    }
+    const q = $("#q").value.trim();
+    const city = $("#city").value.trim();
+    const neigh = $("#neighborhood").value.trim();
+    const cat = $("#category").value;
+
+    let query = sb.from("businesses")
+      .select("id,name,description,address,city,neighborhood,phone,whatsapp,price_from,rating_avg,review_count,guarantee,payment_methods,service_area,latitude,longitude,business_images(url),services!inner(id,name,category_id,service_prices(price))")
+      .eq("status", "approved");
+
+    if (city) query = query.ilike("city", `%${city}%`);
+    if (neigh) query = query.ilike("neighborhood", `%${neigh}%`);
+    if (q) query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,services.name.ilike.%${q}%`);
+    if (cat) query = query.eq("services.category_id", cat);
+
+    const min = Number($("#minPrice").value);
+    const max = Number($("#maxPrice").value);
+    if (min) query = query.gte("price_from", min);
+    if (max) query = query.lte("price_from", max);
+
+    const sort = $("#sort").value;
+    query = query.order(sort === "price_asc" || sort === "price_desc" ? "price_from" : "rating_avg", {
+      ascending: sort === "price_asc"
+    }).limit(100);
+
+    const { data, error } = await query;
+    if (error) {
+      toast("Erro na pesquisa: " + error.message);
+      return;
+    }
+    lastResults = data || [];
+    renderResults(lastResults);
+    if ($("#mapSection").classList.contains("active")) {
+      initMap();
+    }
+  }
+
+  function getExternalMapUrls(b) {
+    const queryStr = encodeURIComponent(
+      b.latitude != null && b.longitude != null
+        ? `${b.latitude},${b.longitude}`
+        : [b.name, b.address, b.neighborhood, b.city, "Brasil"].filter(Boolean).join(", ")
+    );
+    return {
+      google: `https://www.google.com/maps/search/?api=1&query=${queryStr}`,
+      waze: b.latitude != null && b.longitude != null
+        ? `https://waze.com/ul?ll=${b.latitude},${b.longitude}&navigate=yes`
+        : `https://waze.com/ul?q=${queryStr}`
+    };
+  }
+
+  function renderResults(rows) {
+    const el = $("#results");
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty">Nenhuma empresa cadastrada corresponde à pesquisa.</div>';
+      return;
+    }
+    el.innerHTML = rows.map(b => {
+      const img = b.business_images?.[0]?.url;
+      const inCompare = compare.some(x => x.id === b.id);
+      return `
+        <article class="card">
+          <div class="cover">${img ? `<img src="${esc(img)}" alt="${esc(b.name)}">` : "Sem foto"}</div>
+          <div class="card-body">
+            <p class="card-location">${esc(b.city || "")} ${b.neighborhood ? "· " + esc(b.neighborhood) : ""}</p>
+            <h3>${esc(b.name)}</h3>
+            <p class="card-desc">${esc(b.description || "Sem descrição.")}</p>
+            <div class="rating-row">⭐ ${Number(b.rating_avg || 0).toFixed(1)} <span class="muted">(${b.review_count || 0} avaliações)</span></div>
+            <p class="price">${b.price_from != null ? "A partir de R$ " + Number(b.price_from).toFixed(2).replace(".", ",") : "Preço sob consulta"}</p>
+            <div class="chips">${(b.services || []).slice(0, 4).map(s => `<span class="chip">${esc(s.name)}</span>`).join("")}</div>
+            <div class="actions">
+              <button class="secondary ${inCompare ? 'in-compare' : ''}" onclick="toggleCompare('${b.id}')">${inCompare ? "✓ Comparando" : "Comparar"}</button>
+              <button class="primary" onclick="openBusiness('${b.id}')">Ver detalhes</button>
+            </div>
+          </div>
+        </article>`;
+    }).join("");
+  }
+
+  async function openBusiness(id) {
+    if (!sb) return;
+    const { data, error } = await sb.from("businesses")
+      .select("*,business_images(url),services(name,description,service_prices(price)),reviews(id,rating,comment,created_at,profiles(full_name))")
+      .eq("id", id)
+      .single();
+
+    if (error) return toast(error.message);
+    const b = data;
+    const mapUrls = getExternalMapUrls(b);
+
+    $("#modalBody").innerHTML = `
+      <h2>${esc(b.name)}</h2>
+      <p class="muted" style="margin-bottom: 12px;">${esc(b.description || "")}</p>
+      <div class="modal-meta">
+        <div><b>Local:</b> ${esc(b.city || "")} ${b.neighborhood ? "- " + esc(b.neighborhood) : ""}</div>
+        <div><b>Preço inicial:</b> ${b.price_from != null ? "R$ " + Number(b.price_from).toFixed(2).replace(".", ",") : "Sob consulta"}</div>
+        <div><b>Avaliação:</b> ⭐ ${Number(b.rating_avg || 0).toFixed(1)} (${b.review_count || 0})</div>
+        <div><b>Garantia:</b> ${esc(b.guarantee || "Não informada")}</div>
+        <div style="grid-column: 1 / -1;"><b>Pagamento:</b> ${esc(b.payment_methods || "Não informado")}</div>
+      </div>
+
+      <div class="ext-maps">
+        <a class="ext-map-btn" href="${mapUrls.google}" target="_blank" rel="noopener">🗺️ Abrir no Google Maps</a>
+        <a class="ext-map-btn" href="${mapUrls.waze}" target="_blank" rel="noopener">🚗 Ir com Waze</a>
+        ${b.latitude != null && b.longitude != null ? `<button type="button" class="ext-map-btn" style="cursor:pointer; font-family:inherit;" onclick="$('#modal').classList.add('hidden'); showView('mapSection'); focusBusinessOnMap('${b.id}')">📍 Ver no mapa do site</button>` : ""}
+      </div>
+
+      <h3>Serviços oferecidos</h3>
+      ${(b.services || []).length ? (b.services || []).map(s => `
+        <div class="review">
+          <b>${esc(s.name)}</b>
+          ${s.description ? `<p class="muted" style="font-size:13px; margin-top:2px;">${esc(s.description)}</p>` : ""}
+          ${s.service_prices?.length ? `<p style="font-weight:700; color:var(--primary); margin-top:4px;">R$ ${Number(s.service_prices[0].price).toFixed(2).replace(".", ",")}</p>` : ""}
+        </div>`).join("") : '<p class="muted">Nenhum serviço detalhado.</p>'}
+
+      <h3>Solicitar orçamento</h3>
+      <form class="form" onsubmit="sendQuote(event,'${b.id}')">
+        <input name="service" required placeholder="Serviço desejado">
+        <textarea name="description" required placeholder="Descreva detalhadamente o que você precisa..."></textarea>
+        <div class="search-row">
+          <input name="location" required placeholder="Seu bairro / endereço">
+          <input name="desired_date" type="date">
+        </div>
+        <button class="primary">Enviar solicitação de orçamento</button>
+      </form>`;
+
+    $("#modal").classList.remove("hidden");
+  }
+
+  async function sendQuote(e, business_id) {
+    e.preventDefault();
+    if (!user) {
+      $("#modal").classList.add("hidden");
+      showView("auth");
+      return toast("Entre como cliente para solicitar orçamento.");
+    }
+    if (!user.email_confirmed_at) {
+      return toast("Confirme seu e-mail antes de solicitar um orçamento.");
+    }
+    const f = new FormData(e.target);
+    const { error } = await sb.from("quote_requests").insert({
+      client_id: user.id,
+      business_id,
+      service: f.get("service"),
+      description: f.get("description"),
+      location: f.get("location"),
+      desired_date: f.get("desired_date") || null,
+      status: "pending"
+    });
+    if (error) return toast(error.message);
+    $("#modal").classList.add("hidden");
+    toast("Solicitação enviada com sucesso!");
+  }
+
+  function toggleCompare(id) {
+    if (compare.some(x => x.id === id)) {
+      compare = compare.filter(x => x.id !== id);
+    } else {
+      if (compare.length >= 4) return toast("Você pode comparar até 4 prestadores.");
+      compare.push({ id });
+    }
+    localStorage.setItem("compare_local", JSON.stringify(compare));
+    $("#compareCount").textContent = compare.length;
+    renderResults(lastResults);
+  }
+
+  async function renderCompare() {
+    if (!sb || !compare.length) {
+      $("#compareTable").innerHTML = '<div class="compare-wrap"><div class="empty">Selecione prestadores na pesquisa para comparar lado a lado.</div></div>';
+      return;
+    }
+    const ids = compare.map(x => x.id);
+    const { data, error } = await sb.from("businesses")
+      .select("id,name,price_from,rating_avg,guarantee,payment_methods,service_area,description")
+      .in("id", ids);
+
+    if (error) return toast(error.message);
+
+    $("#compareTable").innerHTML = `
+      <div class="compare-wrap">
+        <table class="compare-table">
+          <tr>
+            <th>Critério</th>
+            ${data.map(b => `<th>${esc(b.name)}</th>`).join("")}
+          </tr>
+          <tr>
+            <td>Preço inicial</td>
+            ${data.map(b => `<td><strong>${b.price_from != null ? "R$ " + Number(b.price_from).toFixed(2).replace(".", ",") : "Sob consulta"}</strong></td>`).join("")}
+          </tr>
+          <tr>
+            <td>Avaliação</td>
+            ${data.map(b => `<td>⭐ ${Number(b.rating_avg || 0).toFixed(1)}</td>`).join("")}
+          </tr>
+          <tr>
+            <td>Garantia</td>
+            ${data.map(b => `<td>${esc(b.guarantee || "Não informada")}</td>`).join("")}
+          </tr>
+          <tr>
+            <td>Pagamento</td>
+            ${data.map(b => `<td>${esc(b.payment_methods || "Não informado")}</td>`).join("")}
+          </tr>
+          <tr>
+            <td>Região</td>
+            ${data.map(b => `<td>${esc(b.service_area || "Não informada")}</td>`).join("")}
+          </tr>
+          <tr>
+            <td>Ação</td>
+            ${data.map(b => `<td><button class="primary" style="width:100%; padding:9px;" onclick="openBusiness('${b.id}')">Solicitar</button></td>`).join("")}
+          </tr>
+        </table>
+      </div>`;
+  }
+
+  /* EXTRAÇÃO DE COORDENADAS DO LINK DO GOOGLE MAPS */
+  function extractCoordsFromLink() {
+    const raw = ($("#gmapsLinkInput")?.value || "").trim();
+    if (!raw) return toast("Cole primeiro o link ou as coordenadas do Google Maps.");
+
+    const decoded = decodeURIComponent(raw);
+    const patterns = [
+      /@(-?\d+\.\d+),\s*(-?\d+\.\d+)/,
+      /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
+      /[?&](?:q|query|ll)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/,
+      /(-?\d{1,3}\.\d{4,}),\s*(-?\d{1,3}\.\d{4,})/
+    ];
+
+    for (const regex of patterns) {
+      const m = decoded.match(regex);
+      if (m) {
+        const lat = parseFloat(m[1]);
+        const lng = parseFloat(m[2]);
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          $("#bizLat").value = lat;
+          $("#bizLng").value = lng;
+          return toast(`Coordenadas extraídas: ${lat}, ${lng}`);
+        }
+      }
+    }
+    toast("Não achei coordenadas nesse link. Use o link completo da barra do navegador no Google Maps ou clique com o botão direito no local para copiar os números.");
+  }
+
+  function fillMyCoords() {
+    if (!navigator.geolocation) return toast("Geolocalização não suportada.");
+    toast("Obtendo sua localização atual...");
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        $("#bizLat").value = pos.coords.latitude.toFixed(6);
+        $("#bizLng").value = pos.coords.longitude.toFixed(6);
+        toast("Localização preenchida!");
+      },
+      () => toast("Permissão de localização negada.")
+    );
+  }
+
+  async function saveBusiness(e) {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const bizId = f.get("business_id");
+    const latVal = f.get("latitude") ? parseFloat(f.get("latitude")) : null;
+    const lngVal = f.get("longitude") ? parseFloat(f.get("longitude")) : null;
+
+    const payload = {
+      owner_id: user.id,
+      name: f.get("name").trim(),
+      city: f.get("city").trim(),
+      neighborhood: f.get("neighborhood").trim(),
+      address: f.get("address").trim(),
+      phone: f.get("phone").trim(),
+      whatsapp: f.get("phone").trim(),
+      price_from: f.get("price_from") ? Number(f.get("price_from")) : null,
+      guarantee: f.get("guarantee").trim(),
+      payment_methods: f.get("payment_methods").trim(),
+      service_area: f.get("service_area").trim(),
+      description: f.get("description").trim(),
+      latitude: latVal,
+      longitude: lngVal
+    };
+
+    let savedId = bizId;
+    if (bizId) {
+      const { error } = await sb.from("businesses").update(payload).eq("id", bizId);
+      if (error) return toast("Erro ao atualizar empresa: " + error.message);
+    } else {
+      const { data, error } = await sb.from("businesses").insert(payload).select("id").single();
+      if (error) return toast("Erro ao cadastrar empresa: " + error.message);
+      savedId = data.id;
+    }
+
+    const serviceName = f.get("service_name")?.trim();
+    const categoryId = f.get("category_id") || null;
+    if (savedId && serviceName) {
+      const { data: srv } = await sb.from("services").insert({
+        business_id: savedId,
+        category_id: categoryId,
+        name: serviceName,
+        description: f.get("description").trim()
+      }).select("id").single();
+
+      if (srv && payload.price_from != null) {
+        await sb.from("service_prices").insert({
+          service_id: srv.id,
+          price: payload.price_from
+        });
+      }
+    }
+
+    toast("Empresa salva! Se for novo cadastro, aguarde aprovação do admin (ou aprove no Supabase).");
+    renderDashboard();
+    search();
+  }
+
+  async function renderDashboard() {
+    if (!user) {
+      $("#dashboardContent").innerHTML = `
+        <div class="auth-card" style="text-align:center;">
+          <h2 style="margin-bottom:16px;">Entre para acessar seu painel.</h2>
+          <button class="primary" onclick="showView('auth')">Entrar agora</button>
+        </div>`;
+      return;
+    }
+    const { data: p } = await sb.from("profiles").select("*").eq("id", user.id).single();
+    const { data: b } = await sb.from("businesses").select("*").eq("owner_id", user.id);
+    const { data: q } = await sb.from("quote_requests").select("*,businesses(name)").eq("client_id", user.id).order("created_at", { ascending: false });
+    const isVerified = Boolean(user.email_confirmed_at);
+    const myBiz = b?.[0] || null;
+    const isProvider = p?.role === "provider" || p?.role === "admin";
+
+    $("#dashboardContent").innerHTML = `
+      <div class="dashboard">
+        <p class="eyebrow">PAINEL DO USUÁRIO</p>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:24px;">
+          <h1 style="margin-bottom:0;">Olá, ${esc(p?.full_name || user.email)}</h1>
+          ${isVerified
+            ? '<span class="badge-verified">✓ E-mail verificado</span>'
+            : `<span class="badge-unverified">⚠️ E-mail pendente</span> <button type="button" class="secondary" style="padding:5px 10px; font-size:12px;" onclick="resendVerification()">Reenviar link</button>`}
+        </div>
+        <div class="stat-grid">
+          <div class="stat"><span>Conta</span><strong>${esc(p?.role || "cliente")}</strong></div>
+          <div class="stat"><span>Empresas</span><strong>${b?.length || 0}</strong></div>
+          <div class="stat"><span>Solicitações</span><strong>${q?.length || 0}</strong></div>
+          <div class="stat"><span>Status E-mail</span><strong>${isVerified ? "Ativo" : "Pendente"}</strong></div>
+        </div>
+
+        ${isProvider ? `
+        <div class="panel">
+          <h2>${myBiz ? `Minha Empresa (${esc(myBiz.status)})` : "Cadastrar Minha Empresa & Localização no Mapa"}</h2>
+          <form class="form" onsubmit="saveBusiness(event)">
+            <input type="hidden" name="business_id" value="${esc(myBiz?.id || "")}">
+            <div class="search-row">
+              <label>Nome da empresa<input name="name" required value="${esc(myBiz?.name || "")}" placeholder="Ex.: Silva Elétrica"></label>
+              <label>Telefone / WhatsApp<input name="phone" value="${esc(myBiz?.phone || "")}" placeholder="(44) 99999-9999"></label>
+            </div>
+            <div class="search-row">
+              <label>Cidade<input name="city" required value="${esc(myBiz?.city || "")}" placeholder="Ex.: Campo Mourão"></label>
+              <label>Bairro<input name="neighborhood" value="${esc(myBiz?.neighborhood || "")}" placeholder="Ex.: Centro"></label>
+            </div>
+            <label>Endereço completo<input name="address" value="${esc(myBiz?.address || "")}" placeholder="Rua, número"></label>
+
+            <div class="link-parser-box">
+              <label style="color:var(--primary);">📍 Localização exata no mapa (cole o link do Google Maps)</label>
+              <div class="link-parser-row">
+                <input id="gmapsLinkInput" type="text" placeholder="Cole aqui o link do Google Maps ou coordenadas (-24.0463, -52.3781)">
+                <button type="button" class="secondary" style="white-space:nowrap;" onclick="extractCoordsFromLink()">Extrair do link</button>
+                <button type="button" class="secondary" style="white-space:nowrap;" onclick="fillMyCoords()">Usar meu GPS</button>
+              </div>
+              <div class="search-row">
+                <label>Latitude<input id="bizLat" name="latitude" type="number" step="any" value="${myBiz?.latitude ?? ""}" placeholder="-24.0463"></label>
+                <label>Longitude<input id="bizLng" name="longitude" type="number" step="any" value="${myBiz?.longitude ?? ""}" placeholder="-52.3781"></label>
+              </div>
+            </div>
+
+            ${!myBiz ? `
+            <div class="search-row">
+              <label>Serviço principal<input name="service_name" required placeholder="Ex.: Instalação elétrica residencial"></label>
+              <label>Categoria
+                <select name="category_id">
+                  <option value="">Selecione...</option>
+                  ${categoriesList.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}
+                </select>
+              </label>
+            </div>` : ""}
+
+            <div class="search-row">
+              <label>Preço inicial (R$)<input name="price_from" type="number" step="0.01" min="0" value="${myBiz?.price_from ?? ""}" placeholder="100.00"></label>
+              <label>Garantia<input name="guarantee" value="${esc(myBiz?.guarantee || "")}" placeholder="Ex.: 90 dias"></label>
+            </div>
+            <div class="search-row">
+              <label>Formas de pagamento<input name="payment_methods" value="${esc(myBiz?.payment_methods || "")}" placeholder="Pix, Cartão, Dinheiro"></label>
+              <label>Região atendida<input name="service_area" value="${esc(myBiz?.service_area || "")}" placeholder="Toda a cidade"></label>
+            </div>
+            <label>Descrição dos serviços<textarea name="description" placeholder="Conte sobre sua experiência e serviços...">${esc(myBiz?.description || "")}</textarea></label>
+            <div><button class="primary">${myBiz ? "Atualizar empresa e mapa" : "Salvar empresa"}</button></div>
+          </form>
+        </div>` : ""}
+
+        <div class="panel">
+          <h2>Solicitações de orçamento</h2>
+          ${(q || []).length ? q.map(x => `
+            <div class="review">
+              <b>${esc(x.service)}</b> · <span class="muted">${esc(x.businesses?.name || "")}</span><br>
+              <span class="status">${esc(x.status)}</span>
+              <p style="margin-top:4px; font-size:14px;">${esc(x.description || "")}</p>
+            </div>`).join("") : '<p class="muted">Nenhuma solicitação encontrada.</p>'}
+        </div>
+        <div class="panel">
+          <h2>Meus dados de perfil</h2>
+          <form class="form" onsubmit="saveProfile(event)">
+            <label>Nome completo<input name="full_name" value="${esc(p?.full_name || "")}"></label>
+            <label>Telefone / WhatsApp<input name="phone" value="${esc(p?.phone || "")}"></label>
+            <div><button class="primary">Salvar alterações</button></div>
+          </form>
+        </div>
+      </div>`;
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const { error } = await sb.from("profiles").update({
+      full_name: f.get("full_name"),
+      phone: f.get("phone"),
+      updated_at: new Date().toISOString()
+    }).eq("id", user.id);
+    toast(error ? error.message : "Perfil atualizado com sucesso.");
+  }
+
+  function authForm(mode) {
+    if (mode === "verify") {
+      $("#authForm").innerHTML = `
+        <div class="verify-box">
+          <div style="font-size:32px;">📩</div>
+          <h3>Verifique seu e-mail</h3>
+          <p>Enviamos um link de confirmação para <strong>${esc(pendingVerifyEmail)}</strong>. Clique no link do e-mail para ativar sua conta.</p>
+          <button type="button" class="primary" onclick="resendVerification()">Reenviar e-mail de confirmação</button>
+          <button type="button" class="secondary" onclick="authForm('login')">Voltar para o login</button>
+        </div>`;
+      return;
+    }
+
+    $("#authForm").innerHTML = mode === "login"
+      ? `<form class="form" onsubmit="login(event)">
+          <label>E-mail<input name="email" type="email" placeholder="seu@email.com" required></label>
+          <label>Senha<input name="password" type="password" placeholder="••••••••" required></label>
+          <button class="primary">Entrar</button>
+          <button type="button" class="secondary" onclick="resetPassword()">Esqueci minha senha</button>
+        </form>`
+      : `<form class="form" onsubmit="signup(event)">
+          <label>Nome<input name="name" placeholder="Seu nome completo" required></label>
+          <label>E-mail<input name="email" type="email" placeholder="seu@email.com" required></label>
+          <label>Senha<input name="password" type="password" minlength="6" placeholder="Mínimo 6 caracteres" required></label>
+          <label>Tipo de conta
+            <select name="role">
+              <option value="client">Cliente (busco serviços)</option>
+              <option value="provider">Prestador (ofereço serviços)</option>
+            </select>
+          </label>
+          <button class="primary">Criar conta</button>
+        </form>`;
+  }
+
+  async function login(e) {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const email = f.get("email").trim();
+    if (!sb) return toast("Configure o Supabase corretamente.");
+
+    const { error } = await sb.auth.signInWithPassword({
+      email,
+      password: f.get("password")
+    });
+
+    if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        pendingVerifyEmail = email;
+        authForm("verify");
+        return toast("Confirme seu e-mail antes de entrar.");
+      }
+      return toast(error.message);
+    }
+    showView("dashboard");
+  }
+
+  async function signup(e) {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const email = f.get("email").trim();
+    if (!sb) return toast("Configure o Supabase corretamente.");
+
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: f.get("password"),
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: { full_name: f.get("name"), role: f.get("role") }
+      }
+    });
+
+    if (error) return toast(error.message);
+
+    if (data.user && data.session) {
+      await sb.from("profiles").upsert({
+        id: data.user.id,
+        full_name: f.get("name"),
+        email,
+        role: f.get("role")
+      });
+    }
+
+    pendingVerifyEmail = email;
+    if (!data.session) {
+      authForm("verify");
+      toast("Cadastro realizado! Verifique seu e-mail para ativar a conta.");
+    } else {
+      showView("dashboard");
+      toast("Conta criada com sucesso!");
+    }
+  }
+
+  async function resendVerification() {
+    const email = pendingVerifyEmail || user?.email || prompt("Digite o e-mail cadastrado:");
+    if (!email || !sb) return;
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const { error } = await sb.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: redirectUrl }
+    });
+    toast(error ? error.message : "Novo link de verificação enviado para " + email);
+  }
+
+  async function resetPassword() {
+    const email = prompt("Digite seu e-mail cadastrado:");
+    if (!email || !sb) return;
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+    toast(error ? error.message : "E-mail de recuperação enviado.");
+  }
+
+  async function logout() {
+    await sb?.auth.signOut();
+    showView("search");
+    toast("Sessão encerrada.");
+  }
+
+  /* MAPA COM COORDENADAS EXATAS DO BANCO + GOOGLE MAPS / WAZE */
+  function changeMapTile(styleKey) {
+    if (!leafletMap || !TILE_LAYERS[styleKey]) return;
+    if (currentTileLayer) leafletMap.removeLayer(currentTileLayer);
+    currentTileLayer = L.tileLayer(TILE_LAYERS[styleKey].url, {
+      attribution: TILE_LAYERS[styleKey].attr,
+      maxZoom: 19
+    }).addTo(leafletMap);
+  }
+
+  function locateUser() {
+    if (!navigator.geolocation) return toast("Geolocalização não suportada pelo navegador.");
+    toast("Buscando sua localização...");
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude } = pos.coords;
+        if (!leafletMap) initMap();
+        if (userMarker) userMarker.remove();
+        userMarker = L.circleMarker([latitude, longitude], {
+          radius: 9,
+          fillColor: "#6d4aff",
+          color: "#ffffff",
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.95
+        }).addTo(leafletMap).bindPopup("<b>Você está aqui</b>").openPopup();
+        leafletMap.setView([latitude, longitude], 13);
+      },
+      () => toast("Não foi possível obter sua localização. Verifique as permissões do navegador.")
+    );
+  }
+
+  function focusBusinessOnMap(id) {
+    setTimeout(() => {
+      const m = mapMarkers[id];
+      if (m && leafletMap) {
+        leafletMap.setView(m.getLatLng(), 16);
+        m.openPopup();
+      } else {
+        toast("Este prestador ainda não cadastrou coordenadas no mapa. Use o botão Google Maps.");
+      }
+      $$(".map-item").forEach(el => el.classList.toggle("selected", el.dataset.id === id));
+    }, 220);
+  }
+
+  function initMap() {
+    if (typeof L === "undefined") return;
+    if (!leafletMap) {
+      leafletMap = L.map("map").setView([-14.235, -51.9253], 4);
+      changeMapTile($("#mapStyleSelect")?.value || "clean");
+    }
+    setTimeout(() => leafletMap.invalidateSize(), 120);
+
+    Object.values(mapMarkers).forEach(m => m.remove());
+    mapMarkers = {};
+
+    const sidebar = $("#mapSidebar");
+    if (!lastResults.length) {
+      sidebar.innerHTML = '<p class="muted" style="font-size:13px; text-align:center; padding:24px 8px;">Nenhum prestador encontrado nos filtros atuais.</p>';
+      return;
+    }
+
+    const coordsList = [];
+    const itemsHtml = lastResults.map(b => {
+      const lat = b.latitude != null ? Number(b.latitude) : null;
+      const lng = b.longitude != null ? Number(b.longitude) : null;
+      const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0);
+      const mapUrls = getExternalMapUrls({ ...b, latitude: hasValidCoords ? lat : null, longitude: hasValidCoords ? lng : null });
+
+      if (hasValidCoords) {
+        const marker = L.marker([lat, lng])
+          .addTo(leafletMap)
+          .bindPopup(`
+            <div style="min-width:190px; font-family:Inter,sans-serif;">
+              <strong style="font-size:14px;">${esc(b.name)}</strong><br>
+              <span style="color:#64748b; font-size:12px;">${esc(b.city || "")} ${b.neighborhood ? "· " + esc(b.neighborhood) : ""}</span><br>
+              <span style="font-size:12px; font-weight:700;">⭐ ${Number(b.rating_avg || 0).toFixed(1)} · ${b.price_from != null ? "R$ " + Number(b.price_from).toFixed(2).replace(".", ",") : "Sob consulta"}</span>
+              <div style="display:flex; gap:6px; margin-top:8px;">
+                <button onclick="openBusiness('${b.id}')" style="background:#6d4aff; color:#fff; border:0; padding:5px 9px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">Orçamento</button>
+                <a href="${mapUrls.google}" target="_blank" rel="noopener" style="border:1px solid #cbd5e1; color:#0f172a; text-decoration:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600;">Maps</a>
+              </div>
+            </div>
+          `);
+        mapMarkers[b.id] = marker;
+        coordsList.push([lat, lng]);
+      }
+
+      return `
+        <div class="map-item" data-id="${b.id}" onclick="if(!event.target.closest('a,button')) focusBusinessOnMap('${b.id}')">
+          <h4>${esc(b.name)}</h4>
+          <p>${esc(b.city || "Cidade não informada")} ${b.neighborhood ? "· " + esc(b.neighborhood) : ""}</p>
+          <div class="map-item-links">
+            <button type="button" onclick="openBusiness('${b.id}')">Detalhes</button>
+            <a href="${mapUrls.google}" target="_blank" rel="noopener">Google Maps</a>
+            <a href="${mapUrls.waze}" target="_blank" rel="noopener">Waze</a>
+            ${!hasValidCoords ? '<span style="font-size:11px; color:#94a3b8; align-self:center;">Sem pino</span>' : ''}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    sidebar.innerHTML = itemsHtml;
+
+    if (coordsList.length) {
+      leafletMap.fitBounds(coordsList, { padding: [45, 45], maxZoom: 15 });
+    }
+  }
+
+  $$("[data-view]").forEach(b => b.onclick = () => showView(b.dataset.view));
+  $$("[data-auth]").forEach(b => b.onclick = () => {
+    $$(".tab").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    authForm(b.dataset.auth);
+  });
+
+  $("#searchBtn").onclick = search;
+  ["q", "city", "neighborhood", "category", "minPrice", "maxPrice", "sort"].forEach(id => {
+    $("#" + id).addEventListener("change", search);
+  });
+  $("#closeModal").onclick = () => $("#modal").classList.add("hidden");
+  $("#compareCount").textContent = compare.length;
+
+  authForm("login");
+  init();
+</script>
+</body>
+</html>
